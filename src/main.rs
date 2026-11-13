@@ -1,3 +1,4 @@
+#[derive(Debug)]
 enum Status {
     Pending,
     Done,
@@ -30,4 +31,26 @@ fn add_task(tasks: &mut Vec<Task>, title: String) -> u32 {
     };
     tasks.push(task);
     return new_task_id;
+}
+
+fn complete_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), String> {
+    match tasks.iter_mut().find(|t| t.id == id) {
+        Some(task) => {
+            task.status = Status::Done;
+            Ok(())
+        }
+        None => Err(format!("Task {} not found", id)),
+    }
+}
+
+fn delete_task(tasks: &mut Vec<Task>, id: u32) -> Result<Task, String> {
+    match tasks.iter().position(|t| t.id == id) {
+        Some(index) => Ok(tasks.remove(index)),
+        None => Err(format!("Task {} not found", id)),
+    }
+}
+fn list_tasks(tasks: &[Task]) {
+    for task in tasks {
+        println!("{}. {} [{:?}]", task.id, task.title, task.status);
+    }
 }
