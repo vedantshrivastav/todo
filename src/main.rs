@@ -1,18 +1,58 @@
-#[derive(Debug)]
+mod cli;
+use clap::Parser;
+use cli::{Cli, Command}; // needed for Cli::parse()
+use serde::{Deserialize, Serialize};
+mod load_task;
+use load_task::load_tasks;
+use load_task::save_tasks;
+use std::fs;
+use std::io::ErrorKind;
+
+#[derive(Debug, Serialize, Deserialize)]
 enum Status {
     Pending,
     Done,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
 struct Task {
     id: u32,
     title: String,
     status: Status,
 }
 
+const FILE: &str = "tasks.json";
 //functions
 fn main() {
-    let mut tasks: Vec<Task> = Vec::new();
-    let new_task = add_task(&mut tasks, String::from("Start learning rust"));
+    let mut tasks = match load_tasks(FILE) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("Error loading tasks: {}", e);
+            return;
+        }
+    };
+    let cli = Cli::parse();
+
+    match cli.command {
+        Command::Add { title } => {
+            let id = add_task(&mut tasks, title);
+            println!("Added task {}", id);
+        }
+        Command::List => list_tasks(&tasks),
+        Command::Done { id } => {
+            if let Err(e) = complete_task(&mut tasks, id) {
+                println!("Error: {}", e);
+            }
+        }
+        Command::Delete { id } => {
+            if let Err(e) = delete_task(&mut tasks, id) {
+                println!("Error: {}", e);
+            }
+        }
+    }
+    if let Err(e) = save_tasks(FILE, &tasks) {
+        println!("Error saving tasks: {}", e);
+    }
 }
 
 fn add_task(tasks: &mut Vec<Task>, title: String) -> u32 {
